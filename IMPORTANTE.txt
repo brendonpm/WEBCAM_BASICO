@@ -1,0 +1,106 @@
+//importações:
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import javax.imageio.ImageIO;
+import javax.swing.JFileChooser;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.highgui.HighGui;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.videoio.VideoCapture;
+
+//
+Adicionar VM_OPTION no JRE: -Djava.library.path="C:\opencv\build\java\x86" (local da opencv.dll | veja a arquitetura do seu sistema: x86 ou x64)
+
+
+////////////////
+///Botao tirar foto
+        int returnVal = jFileChooser1.showSaveDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+        File file = jFileChooser1.getSelectedFile();
+        Imgcodecs.imwrite(file.getPath(), frame);
+    } else {
+        System.out.println("File access cancelled by user.");
+    }
+//////////////////////////////////////////////
+
+
+// Definições
+ private DaemonThread myThread = null;
+    int count = 0;
+    VideoCapture webSource = null;
+
+    Mat frame = new Mat();
+    MatOfByte mem = new MatOfByte();
+////////////////////////////////////////////////////////////
+ /// Botao ligar Cam
+ webSource =new VideoCapture(0);
+  myThread = new DaemonThread();
+            Thread t = new Thread(myThread);
+            t.setDaemon(true);
+            myThread.runnable = true;
+            t.start();
+			 jButton1.setEnabled(false);  //start button
+            jButton2.setEnabled(true);  // stop button
+//////////////////////////////////////////////////////
+/// Botao pausar Cam 
+myThread.runnable = false;
+            jButton2.setEnabled(false);   
+            jButton1.setEnabled(true);
+            
+            webSource.release();			
+
+
+/////////////////////////////////////////////////////////////////////
+  /// Classe DaemonThread
+  class DaemonThread implements Runnable
+    {
+    protected volatile boolean runnable = false;
+
+    @Override
+    public  void run()
+    {
+        synchronized(this)
+        {
+            while(runnable)
+            {
+                if(webSource.grab())
+                {
+		    	try
+                        {
+                            webSource.retrieve(frame);
+			    Imgcodecs.imencode(".bmp", frame, mem);
+			    Image im = ImageIO.read(new ByteArrayInputStream(mem.toArray()));
+
+			    BufferedImage buff = (BufferedImage) im;
+			    Graphics g=jPanel1.getGraphics();
+
+			    if (g.drawImage(buff, 0, 0, getWidth(), getHeight() -150 , 0, 0, buff.getWidth(), buff.getHeight(), null))
+			    
+			    if(runnable == false)
+                            {
+			    	System.out.println("Going to wait()");
+			    	this.wait();
+			    }
+			 }
+			 catch(Exception ex)
+                         {
+			    System.out.println("Error");
+                         }
+                }
+            }
+        }
+     }
+   }
+   /////////////////////////////////////////////////////////
+   
+   // Adicionar no metodo main
+   
+           System.loadLibrary(Core.NATIVE_LIBRARY_NAME); // Carregar library nativa opencv
+		   
+		   
+OBS: para rodar o sistema fora da IDE é necessario a execução pelo arq. 'iniciar.bat' para adicionar a 'library opencv.dll' no JRE.
